@@ -182,7 +182,13 @@ make translate
 
 - [ ] Rebranding: package name, app icons, splash screen, app display name
 - [ ] Default locale — Russian (`ru`)
-- [ ] AmneziaWG integration (requires forking `hiddify-core` or patching sing-box)
+- [ ] AmneziaWG: пропатчить `hiddify-core/ray2sing/ray2sing/awg.go`
+  - Строка 150 (`AWGSingboxTxt`) и строка 323 (`AWGSingbox`): убрать `true ||` из условия `if true || isAwg`
+  - При этом название переменной `isAwg` вводит в заблуждение — на самом деле она означает "isPlainWireGuard" (true когда все AWG-параметры пустые), поэтому правильная логика: `if !isAwg` → `C.TypeAwg` ветка, иначе `C.TypeWireGuard`
+  - Дополнительно: убрать дублирующую проверку на строках 140–141, исправить опечатку `"wiregaurd"` → `"wireguard"` на строке 154
+  - `hiddify-sing-box` submodule полностью поддерживает AWG (зависимость `github.com/amnezia-vpn/amneziawg-go v0.2.16`, 8 коммитов "Integrate AmneziaWG")
+  - Стратегия: гибрид — патч в локальном форке `ray2sing` + параллельный PR в апстрим `hiddify/ray2sing` (open issues отсутствуют)
+  - После патча требуется пересборка `hiddify-core` с локального source и замена бинарника в `hiddify-core/bin/`
 - [ ] Pre-shared Flexora subscription profiles
 - [ ] CI/CD setup for the `flexorochka` GitHub organization
 
@@ -193,3 +199,7 @@ git fetch upstream && git merge upstream/main
 ```
 
 All Flexora-specific changes must be in dedicated commits prefixed with `flexora:` to simplify future rebases onto upstream updates.
+
+## AmneziaWG Integration Notes
+
+Корневая причина того, что AWG не работает в upstream Hiddify, найдена 12 апреля 2026: коммит `60b9f7f9` ("support mixed of configs wireguard and vless", 14 февраля 2026) ввёл `if true || isAwg` как временный workaround при добавлении поддержки смешанных WireGuard+VLESS подписок. Workaround не был откачен. Восемь предыдущих коммитов делали AWG действительно рабочим. Полная цепочка зависимостей AWG (`C.TypeAwg`, `T.AwgEndpointOptions`, `T.AwgPeerOptions`) живёт в `hiddify-sing-box` submodule с использованием `amneziawg-go v0.2.16` — никакого форка sing-box делать не нужно.
